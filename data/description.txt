@@ -1,0 +1,1 @@
+Foldery zawierają 3 różne rodzaje anomalii (bitrate_fluctuation, pattern_swap i sum_diff). Wewnątrz każdego rodzaju jest po 50 szeregów czasowych w dwóch wersjach: change_halfway (zmiana następuje ok. połowy przebiegu) oraz change_three_quarters (zmiana następuje ok. trzech czwartych przebiegu). 

@@ -19,13 +19,15 @@ def readData():
     x = []
     y = []
     data = datafile.readlines()
-    for idx in range(3,len(data)):  
-            try:            
-                y.append(float(data[idx]))
-                x.append(float(data[idx - 1]))
-            except :
-                pass
-
+    for idx in range(13,len(data)):            
+        try:
+            y.append(float(data[idx]))
+            numbers = [float(data[1]),float(data[2])]
+            for i in range(idx-10,idx):
+                numbers.append(float(data[i]))
+            x.append(numbers)
+        except:
+            pass
     return train_test_split(x, y, train_size=0.7)
 
 X_train, X_test, y_train, y_test = readData();
@@ -36,10 +38,10 @@ X_train, X_test, y_train, y_test = readData();
 model = MLPRegressor(hidden_layer_sizes=(100, 50), max_iter=1000)
 
 # Trenuj model
-model.fit(np.array(X_train).reshape(-1,1),y_train)
+model.fit(X_train,y_train)
 
 # Dokonaj predykcji
-y_pred = model.predict(np.array(X_test).reshape(-1,1))
+y_pred = model.predict(X_test)
 
 data = []
 for idx in range(0,len(X_test)):

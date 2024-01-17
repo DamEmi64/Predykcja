@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>598ab3b8-1f0e-411e-8236-6027911838c7</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>example.py</StartupFile>
+    <StartupFile>Predykcja.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>

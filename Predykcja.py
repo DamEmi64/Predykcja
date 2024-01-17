@@ -1,5 +1,6 @@
 from numpy.lib import save
 from numpy.random import f
+import scipy
 import sklearn.datasets
 from sklearn.neural_network import MLPClassifier, MLPRegressor
 from sklearn.preprocessing import StandardScaler
@@ -31,7 +32,9 @@ def readData():
     g = ig.Graph();
     data = []
     edges = []
-    mean_attribute = []
+    var_attribute = []
+    skew_attribute = []
+    kurtosis_attribute = []
     for filename in os.listdir(directory):
         # len skasować, za długo to trwa
         if os.path.isfile(os.path.join(directory, filename)):
@@ -41,7 +44,9 @@ def readData():
             add_vertex_if_not_exists(g,int(numbers[0]))
             add_vertex_if_not_exists(g,int(numbers[1]))
             edges.append([int(numbers[0]),int(numbers[1])])
-            mean_attribute.append(np.var(numbers[3:]))
+            var_attribute.append(np.var(numbers[3:]))
+            skew_attribute.append(scipy.stats.skew(numbers[3:]))
+            kurtosis_attribute.append(scipy.stats.kurtosis(numbers[3:]))
             dataCl = edgeDataClass()
             dataCl.start_node = numbers[0]
             dataCl.end_node = numbers[1]
@@ -49,7 +54,7 @@ def readData():
             
             data.append(dataCl)
             
-    g.add_edges(edges,{"mean":mean_attribute})
+    g.add_edges(edges,{"var":var_attribute, "skew":skew_attribute, "kurtosis": kurtosis_attribute})
     return g, data
 
 def get_features(array):

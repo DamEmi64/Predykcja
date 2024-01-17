@@ -130,14 +130,26 @@ for community in communities.keys():
     train_data_x = []
     train_data_y = []
     edges = {}
+    flaga = True
     for dataCl in communities[community]:
         x, y = get_features(dataCl.data)
         X_train, X_test, y_train, y_test = train_test_split(x, y, train_size=0.7)
         edge_name = str(dataCl.start_node) + "_" + str(dataCl.end_node)
+        if flaga:
+            flaga = False
+            model2 = MLPRegressor(hidden_layer_sizes=(100, 50), max_iter=1000)
+            model2.fit(X_train,y_train)
+            y_pred = model2.predict(X_test)
+            data_to_write = []
+            for idx in range(0,len(y_pred)):
+                data_to_write.append([idx,y_pred[idx]])
+            pd.DataFrame(data_to_write).to_csv("./data/csv/"+edge_name+"_simple_pred.csv")  
+            
+
         for idx in range(0,len(X_train)):
              train_data_x.append(X_train[idx])
              train_data_y.append(y_train[idx])
-        
+
         if edge_name in edges.keys():
             data2Cl = edges[edge_name]
             for idx in range(0,len(X_test)):
@@ -146,7 +158,7 @@ for community in communities.keys():
             edges[edge_name] = data2Cl
         else:
             edges[edge_name] =  dataClass(X_test,y_test)
-    model.fit(train_data_x[:25000],train_data_y[:25000])
+    model.fit(train_data_x[:250000],train_data_y[:250000])
     for edge in edges.keys():
         y_pred = model.predict(edges[edge].x)  
         data_to_write = []

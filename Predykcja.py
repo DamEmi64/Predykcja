@@ -1,4 +1,5 @@
 from numpy.lib import save
+from numpy.random import f
 import sklearn.datasets
 from sklearn.neural_network import MLPClassifier, MLPRegressor
 from sklearn.preprocessing import StandardScaler
@@ -10,8 +11,9 @@ import matplotlib.pyplot as plt
 import igraph as ig
 import leidenalg
 import os
+from Classes import edgeDataClass
 
-from Data import dataClass
+from Classes import dataClass
 
 def add_vertex_if_not_exists(graph, vertex_name):
     if not has_node(graph,vertex_name):
@@ -27,12 +29,12 @@ def has_node(graph, name):
 def readData():
     directory = './data/dataset'
     g = ig.Graph();
-    data = {}
+    data = []
     edges = []
     attributes = []
     for filename in os.listdir(directory):
         # len skasować, za długo to trwa
-        if os.path.isfile(os.path.join(directory, filename)) and len(edges)< 150:
+        if os.path.isfile(os.path.join(directory, filename)) and len(data) < 100:
             file = open(os.path.join(directory, filename))
             lines = file.readlines()
             numbers = np.array(lines[1:]).astype(np.float32)
@@ -41,10 +43,12 @@ def readData():
             edges.append([int(numbers[0]),int(numbers[1])])
             attributes.append(np.mean(numbers[3:]))
             
-            if int(numbers[0]) in data.keys():
-                data[int(numbers[0])].append(numbers[3:])
-            else:
-                data[int(numbers[0])] = [numbers[3:]]  
+            dataCl = edgeDataClass()
+            dataCl.start_node = numbers[0]
+            dataCl.end_node = numbers[1]
+            dataCl.data = numbers[3:]
+            
+            data.append(dataCl)
             
     g.add_edges(edges,{"mean":attributes})
     return g, data
@@ -59,64 +63,101 @@ def get_features(array):
     return x_array, y_array
 
 
-def get_train_test_data():
+def get_communities():
     
     g, node_data = readData()
     partition = leidenalg.find_partition(g, leidenalg.ModularityVertexPartition)
+    communities = {}
     print("Społeczności:")
-    community_data = {}
+    for community in partition:
+        print(community)
+        community_name = ",".join(str(x) for x in community)
+        communities[community_name] = []
+        for dataCl in node_data:
+            if dataCl.start_node in community and dataCl.end_node in community:
+               communities[community_name].append(dataCl)
+    
+    return communities
+'''
     data = {}
     for community in partition:
         community_name = ",".join(str(x) for x in community)
+        x2 = []
+        y2 = []
+            model = MLPRegressor(hidden_layer_sizes=(100, 50), max_iter=1000)
+        for dataCl in node_data:
+            if dataCl.start_node in community and dataCl.end_node in community:
+                x_arr,y_arr = get_features(node_arr)
+                X_train, X_test, y_train, y_test = train_test_split(x_arr, y_arr, train_size=0.7)
+                
+
         for node in community:
-            if node in node_data.keys():
-                x = []
-                y = []
+            if node in node_data:
+
                 if community_name in data.keys():
                     community_data[community_name].append(node_data[node])
                     
                     for node_arr in node_data[node]:
-                        x_arr,y_arr = get_features(node_arr)
                         
-                        for idx in (0,len(x_arr)-1):
-                            x.append(x_arr[idx])
-                            y.append(y_arr[idx])
+                        
+                        for idx in range(0,len(x_arr)-1):
+                            x2.append(x_arr[idx])
+                            y2.append(y_arr[idx])
                 else:
                     community_data[community_name] = [node_data[node]]
                     
                     for node_arr in node_data[node]:
                         x_arr,y_arr = get_features(node_arr)
                         
-                        for idx in (0,len(x_arr)-1):
-                            x.append(x_arr[idx])
-                            y.append(y_arr[idx])
+                        for idx in range(0,len(x_arr)-1):
+                            x2.append(x_arr[idx])
+                            y2.append(y_arr[idx])
                             
-                dataCl = dataClass()                        
-                dataCl.x = x
-                dataCl.y = y
-                data[community_name] = dataCl
+        dataCl = dataClass()                        
+        dataCl.x = x2
+        dataCl.y = y2
+        data[community_name] = dataCl
         print(community)
     
     return data
+'''
+communities = get_communities()
 
-data = get_train_test_data()
-
-for key in data.keys():
-    
-    dataCl = data[key]
-    
-    X_train, X_test, y_train, y_test = train_test_split(dataCl.x, dataCl.y, train_size=0.7)
+for community in communities.keys():
     model = MLPRegressor(hidden_layer_sizes=(100, 50), max_iter=1000)
-    model.fit(X_train,y_train)
-    y_pred = model.predict(X_test)
+    test_data = {}
+    train_data_x = []
+    train_data_y = []
+    edges = {}
+    for dataCl in communities[community]:
+        x, y = get_features(dataCl.data)
+        X_train, X_test, y_train, y_test = train_test_split(x, y, train_size=0.7)
+        edge_name = str(dataCl.start_node) + "_" + str(dataCl.end_node)
+        for idx in range(0,len(X_train)):
+             train_data_x.append(X_train[idx])
+             train_data_y.append(y_train[idx])
+        
+        if edge_name in edges.keys():
+            data2Cl = edges[edge_name]
+            for idx in range(0,len(X_test)):
+                data2Cl.x.append(X_test[idx])
+                data2Cl.y.append(y_test[idx])
+            edges[edge_name] = data2Cl
+        else:
+            data2Cl = dataClass()
+            for idx in range(0,len(X_test)):
+                data2Cl.x.append(X_test[idx])
+                data2Cl.y.append(y_test[idx])
+            edges[edge_name] = data2Cl
+    model.fit(train_data_x[:2500],train_data_y[:2500])
+    for edge in edges.keys():
+        y_pred = model.predict(edges[edge].x)  
+        data_to_write = []
+        for idx in range(0,len(edges[edge].x)):
+             data_to_write.append([idx,y_pred[idx]])
+        pd.DataFrame(data_to_write).to_csv("./data/csv/"+edge+"_test.csv")
+        data_to_write = []
+        for idx in range(0,len(edges[edge].x)):
+             data_to_write.append([idx,edges[edge].y[idx]])
+        pd.DataFrame(data_to_write).to_csv("./data/csv/"+edge+"_test.csv")
 
-    data_to_write = []
-    for idx in range(0,len(X_test)):
-         data_to_write.append([idx,y_test[idx]])
-
-    pd.DataFrame(data_to_write).to_csv("./data/csv/"+key.replace(",","_")+"_test.csv")
-    data_to_write = []
-    for idx in range(0,len(X_test)):
-         data_to_write.append([idx,y_pred[idx]])
-
-    pd.DataFrame(data_to_write).to_csv("./data/csv/"+key.replace(",","_")+"_pred.csv")

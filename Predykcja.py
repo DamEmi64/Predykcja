@@ -47,7 +47,10 @@ def readData():
             var_attribute.append(np.var(numbers[3:]))
             skew_attribute.append(scipy.stats.skew(numbers[3:]))
             kurtosis_attribute.append(scipy.stats.kurtosis(numbers[3:]))
-            dataCl = edgeDataClass(numbers[0],numbers[1],numbers[3:])
+            dataCl = edgeDataClass()
+            dataCl.start_node = numbers[0]
+            dataCl.end_node = numbers[1]
+            dataCl.data = numbers[3:]
             
             data.append(dataCl)
             
@@ -145,14 +148,18 @@ for community in communities.keys():
                 data2Cl.y.append(y_test[idx])
             edges[edge_name] = data2Cl
         else:
-            edges[edge_name] =  dataClass(X_test,y_test)
+            data2Cl = dataClass()
+            for idx in range(0,len(X_test)):
+                data2Cl.x.append(X_test[idx])
+                data2Cl.y.append(y_test[idx])
+            edges[edge_name] = data2Cl
     model.fit(train_data_x[:25000],train_data_y[:25000])
     for edge in edges.keys():
         y_pred = model.predict(edges[edge].x)  
         data_to_write = []
         for idx in range(0,len(edges[edge].x)):
              data_to_write.append([idx,y_pred[idx]])
-        pd.DataFrame(data_to_write).to_csv("./data/csv/"+edge+"_pred.csv")
+        pd.DataFrame(data_to_write).to_csv("./data/csv/"+edge+"_test.csv")
         data_to_write = []
         for idx in range(0,len(edges[edge].x)):
              data_to_write.append([idx,edges[edge].y[idx]])

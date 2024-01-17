@@ -24,6 +24,8 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Data.py" />
+    <Compile Include="example.py" />
     <Compile Include="Predykcja.py" />
   </ItemGroup>
   <ItemGroup>

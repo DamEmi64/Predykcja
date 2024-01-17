@@ -7,50 +7,116 @@ from sklearn.metrics import accuracy_score
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt  
-# Za³aduj dane
-# Przygotuj dane do uczenia
-# np. X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+import igraph as ig
+import leidenalg
+import os
+
+from Data import dataClass
+
+def add_vertex_if_not_exists(graph, vertex_name):
+    if not has_node(graph,vertex_name):
+        graph.add_vertex(vertex_name)
+
+def has_node(graph, name):
+    try:
+        graph.vs.find(name=name)
+    except:
+        return False
+    return True
+
 def readData():
-    # przerób
-# zczytuje 2 i 3 jako wez³y 
-# zczytuje dae do linijki
+    directory = './data/dataset'
+    g = ig.Graph();
+    data = {}
+    edges = []
+    attributes = []
+    for filename in os.listdir(directory):
+        # len skasowaÄ‡, za dÅ‚ugo to trwa
+        if os.path.isfile(os.path.join(directory, filename)) and len(edges)< 150:
+            file = open(os.path.join(directory, filename))
+            lines = file.readlines()
+            numbers = np.array(lines[1:]).astype(np.float32)
+            add_vertex_if_not_exists(g,int(numbers[0]))
+            add_vertex_if_not_exists(g,int(numbers[1]))
+            edges.append([int(numbers[0]),int(numbers[1])])
+            attributes.append(np.mean(numbers[3:]))
+            
+            if int(numbers[0]) in data.keys():
+                data[int(numbers[0])].append(numbers[3:])
+            else:
+                data[int(numbers[0])] = [numbers[3:]]  
+            
+    g.add_edges(edges,{"mean":attributes})
+    return g, data
 
-    datafile =  open("./data/dataset/1.txt")
-    x = []
-    y = []
-    data = datafile.readlines()
-    for idx in range(13,len(data)):            
-        try:
-            y.append(float(data[idx]))
-            numbers = [float(data[1]),float(data[2])]
-            for i in range(idx-10,idx):
-                numbers.append(float(data[i]))
-            x.append(numbers)
-        except:
-            pass
-    return train_test_split(x, y, train_size=0.7)
-
-X_train, X_test, y_train, y_test = readData();
+def get_features(array):
+    x_array= []
+    y_array =[]
+    for idx in range(10,len(array)):
+        y_array.append(array[idx])
+        x_array.append(array[idx-10:idx])
+        
+    return x_array, y_array
 
 
+def get_train_test_data():
+    
+    g, node_data = readData()
+    partition = leidenalg.find_partition(g, leidenalg.ModularityVertexPartition)
+    print("SpoÅ‚ecznoÅ›ci:")
+    community_data = {}
+    data = {}
+    for community in partition:
+        community_name = ",".join(str(x) for x in community)
+        for node in community:
+            if node in node_data.keys():
+                x = []
+                y = []
+                if community_name in data.keys():
+                    community_data[community_name].append(node_data[node])
+                    
+                    for node_arr in node_data[node]:
+                        x_arr,y_arr = get_features(node_arr)
+                        
+                        for idx in (0,len(x_arr)-1):
+                            x.append(x_arr[idx])
+                            y.append(y_arr[idx])
+                else:
+                    community_data[community_name] = [node_data[node]]
+                    
+                    for node_arr in node_data[node]:
+                        x_arr,y_arr = get_features(node_arr)
+                        
+                        for idx in (0,len(x_arr)-1):
+                            x.append(x_arr[idx])
+                            y.append(y_arr[idx])
+                            
+                dataCl = dataClass()                        
+                dataCl.x = x
+                dataCl.y = y
+                data[community_name] = dataCl
+        print(community)
+    
+    return data
 
-# Utwórz model GNN
-model = MLPRegressor(hidden_layer_sizes=(100, 50), max_iter=1000)
+data = get_train_test_data()
 
-# Trenuj model
-model.fit(X_train,y_train)
+for key in data.keys():
+    
+    dataCl = data[key]
+    
+    X_train, X_test, y_train, y_test = train_test_split(dataCl.x, dataCl.y, train_size=0.7)
+    model = MLPRegressor(hidden_layer_sizes=(100, 50), max_iter=1000)
+    model.fit(X_train,y_train)
+    y_pred = model.predict(X_test)
 
-# Dokonaj predykcji
-y_pred = model.predict(X_test)
+    data_to_write = []
+    for idx in range(0,len(X_test)):
+         data_to_write.append([idx,y_test[idx]])
 
-data = []
-for idx in range(0,len(X_test)):
-     data.append([idx,y_test[idx]])
+    pd.DataFrame(data_to_write).to_csv("./data/csv/"+key.replace(",","_")+"_test.csv")
+    data_to_write = []
+    for idx in range(0,len(X_test)):
+         data_to_write.append([idx,y_pred[idx]])
 
-pd.DataFrame(data).to_csv("./data/csv/1_test.csv")
-data = []
-for idx in range(0,len(X_test)):
-     data.append([idx,y_pred[idx]])
-
-pd.DataFrame(data).to_csv("./data/csv/1_pred.csv")
-input()
+    pd.DataFrame(data_to_write).to_csv("./data/csv/"+key.replace(",","_")+"_pred.csv")

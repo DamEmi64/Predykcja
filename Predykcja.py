@@ -31,18 +31,17 @@ def readData():
     g = ig.Graph();
     data = []
     edges = []
-    attributes = []
+    mean_attribute = []
     for filename in os.listdir(directory):
         # len skasować, za długo to trwa
-        if os.path.isfile(os.path.join(directory, filename)) and len(data) < 100:
+        if os.path.isfile(os.path.join(directory, filename)):
             file = open(os.path.join(directory, filename))
             lines = file.readlines()
             numbers = np.array(lines[1:]).astype(np.float32)
             add_vertex_if_not_exists(g,int(numbers[0]))
             add_vertex_if_not_exists(g,int(numbers[1]))
             edges.append([int(numbers[0]),int(numbers[1])])
-            attributes.append(np.mean(numbers[3:]))
-            
+            mean_attribute.append(np.var(numbers[3:]))
             dataCl = edgeDataClass()
             dataCl.start_node = numbers[0]
             dataCl.end_node = numbers[1]
@@ -50,7 +49,7 @@ def readData():
             
             data.append(dataCl)
             
-    g.add_edges(edges,{"mean":attributes})
+    g.add_edges(edges,{"mean":mean_attribute})
     return g, data
 
 def get_features(array):
@@ -66,7 +65,7 @@ def get_features(array):
 def get_communities():
     
     g, node_data = readData()
-    partition = leidenalg.find_partition(g, leidenalg.ModularityVertexPartition)
+    partition = leidenalg.find_partition(g, leidenalg.ModularityVertexPartition, max_comm_size=10)
     communities = {}
     print("Społeczności:")
     for community in partition:
@@ -149,7 +148,7 @@ for community in communities.keys():
                 data2Cl.x.append(X_test[idx])
                 data2Cl.y.append(y_test[idx])
             edges[edge_name] = data2Cl
-    model.fit(train_data_x[:2500],train_data_y[:2500])
+    model.fit(train_data_x[:25000],train_data_y[:25000])
     for edge in edges.keys():
         y_pred = model.predict(edges[edge].x)  
         data_to_write = []

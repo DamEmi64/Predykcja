@@ -1,0 +1,4 @@
+#!B:\Studia\ITE\2stopien\2sem\Projektowanie sieci komputerowych\Predykcja\env\Scripts\python.exe
+"""Small script to execute the igraph command line interface"""
+from igraph.app.shell import main
+main()

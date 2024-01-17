@@ -64,8 +64,8 @@ def get_features(array):
 
 def get_communities():
     
-    g, node_data = readData()
-    partition = leidenalg.find_partition(g, leidenalg.ModularityVertexPartition, max_comm_size=10)
+    g, node_data = readData() 
+    partition = leidenalg.find_partition(g, leidenalg.ModularityVertexPartition, max_comm_size=int(len(g.vs)/3))
     communities = {}
     print("Społeczności:")
     for community in partition:
